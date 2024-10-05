@@ -1,0 +1,297 @@
+﻿;Non-Intrusive Autoclicker, by SkyFoxCoder (Original by Shadowspaz)
+;v3.0.0
+
+#Requires AutoHotkey v2.0
+
+InstallKeybdHook()
+#SingleInstance Force
+DetectHiddenWindows(true)
+SetControlDelay(-1)
+Thread("Interrupt", 0)
+
+toggle := false
+inputPresent := false
+mouseMoved := false
+settingPoints := false
+
+clickRate := 20
+Mode := 0
+pmx := 0
+pmy := 0
+
+totalClicks := 1
+currentClick := 1
+
+TempRateCPS := 50
+TempRateSPC := 1
+
+actWin := 0
+
+SetTimer(checkMouseMovement,10)
+
+SetTimer(setTip,5)
+TTStart := A_TickCount
+while (A_TickCount - TTStart < 5000 && !toggle)
+{
+    TooltipMsg := "Press (Alt + Backspace) to toggle autoclicker `n Press (Alt + Dash(-)) for options"
+}
+TooltipMsg := ""
+
+!-::
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    if !WinExist("NIAC Settings")
+    {
+        if settingPoints
+        {
+            toggle := false
+            settingPoints := false
+            actWin := 0
+            TooltipMsg := ""
+        }
+
+        prevTC := totalClicks
+
+        myGui := Gui()
+        myGui.OnEvent("Close", GuiClose)
+        myGui.Title := "NIAC Settings"
+        myGui.Show("w210 h160")
+        ogcRadiomode := myGui.Add("Radio", "x25 y10  vmode", "Clicks per second:")
+        ogcRadiomode.OnEvent("Click", ActEdit1.Bind("Normal"))
+        ogcRadioSecondsperclick := myGui.Add("Radio", "x25 y35", "Seconds per click:")
+        ogcRadioSecondsperclick.OnEvent("Click", ActEdit2.Bind("Normal"))
+        ogcEdittempRateCPS := myGui.Add("Edit", "x135 y8 w50 Number Left vtempRateCPS", tempRateCPS)
+        ogcEdittempRateSPC := myGui.Add("Edit", "x135 y33 w50 Number Left vtempRateSPC", tempRateSPC)
+        myGui.Add("Text", "x30 y65", "Total click locations:")
+        ogcEdittotalClicks := myGui.Add("Edit", "x133 y63 w50 Number Left vtotalClicks", totalClicks)
+        myGui.Add("Text", "x0 w210 0x10")
+        myGui.Add("Text", "x27 y100", "(Default is 50 clicks per second)")
+        ogcButtonReset := myGui.Add("Button", "x60 y117", "Reset")
+        ogcButtonReset.OnEvent("Click", Reset.Bind("Normal"))
+        ogcButtonSet := myGui.Add("Button", "x112 y117 Default", "Set")
+        ogcButtonSet.OnEvent("Click", SetVal.Bind("Normal"))
+        myGui.SetFont("s6")
+        myGui.Add("Text", "x94 y151", "Udpated by SkyFoxCoder - v3.0.0")
+        if (Mode < 2)
+        {
+            Mode := 1
+            ActEdit1()
+        }
+        else
+        {
+            ogcRadioSecondsperclick.Value := 1
+            ActEdit2()
+        }
+    }
+    else
+        WinActivate("NIAC Settings")
+return
+} ; V1toV2: Added bracket before function
+
+ActEdit1(A_GuiEvent := "", GuiCtrlObj := "", Info := "", *)
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    ogcEdittempRateCPS.Enabled := true
+    ogcEdittempRateSPC.Enabled := false
+    ogcEdittempRateCPS.Focus()
+    Send("+{End}")
+return
+} ; V1toV2: Added Bracket before label
+
+ActEdit2(A_GuiEvent := "", GuiCtrlObj := "", Info := "", *)
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    ogcEdittempRateSPC.Enabled := true
+    ogcEdittempRateCPS.Enabled := false
+    ogcEdittempRateSPC.Focus()
+    Send("+{End}")
+return
+} ; V1toV2: Added Bracket before label
+
+Reset(A_GuiEvent := "", GuiCtrlObj := "", Info := "", *)
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    toggle := false
+    actWin := 0
+    SetTimer(autoClick,0)
+    currentClick := 1
+    ogcButtonReset.Enabled := false
+    myGui.SetFont("s8")
+    myGui.Add("Text", "x54 y145", "Click locations reset.")
+return
+} ; V1toV2: Added Bracket before label
+
+SetVal(A_GuiEvent := "", GuiCtrlObj := "", Info := "", *)
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    oSaved := myGui.Submit()
+    mode := oSaved.mode
+    tempRateCPS := oSaved.tempRateCPS
+    tempRateSPC := oSaved.tempRateSPC
+    totalClicks := oSaved.totalClicks
+    if (mode < 2)
+        clickRate := tempRateCPS > 0 ? 1000 / tempRateCPS : 1000
+    else
+        clickRate := tempRateSPC > 0 ? 1000 * tempRateSPC : 1000
+    if (totalClicks != prevTC)
+    {
+        toggle := false
+        actWin := 0
+        SetTimer(autoClick,0)
+    }
+} ; V1toV2: Added bracket before function
+GuiClose(*)
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    if toggle
+    {
+        EmptyMem()
+        SetTimer(autoclick,clickRate)
+    }
+    myGui.Destroy()
+return
+} ; V1toV2: Added Bracket before hotkey or Hotstring
+
+!Backspace::
+
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    if WinExist("NIAC Settings") ; Only functional if options window is not open
+    {
+        return
+    }
+
+    toggle := !toggle
+    if (!toggle)
+    {
+        SetTimer(setTip,5)
+        TTStart := A_TickCount
+        TooltipMsg := "##Autoclick disabled."
+        SetTimer(autoclick,0)
+        return
+    }
+    
+    SetTimer(setTip,5)
+    if (!actWin) ; actWin value is also used to determine if checks are set. If they aren't:
+    {
+        settingPoints := true ; Used to allow break if options are opened
+        Loop totalClicks
+        {
+            if (totalClicks < 2)
+                TooltipMsg := "Click the desired autoclick location."
+            else
+                TooltipMsg := "Click the location for point " . A_Index . "."
+            toggle := false
+            KeyWait("LButton", "D")
+            KeyWait("LButton")
+            if !settingPoints ; Opening options sets this to false, breaking the loop
+                return
+            TooltipMsg := ""
+            newIndex := A_Index - 1
+            MouseGetPos(&xp%newIndex%, &yp%newIndex%)
+            actWin := WinGetID("A")
+        }
+        settingPoints := false
+    }
+    else ; If values ARE set (actWin contains data):
+    {
+        settingPoints := false
+        SetTimer(setTip,5)
+        TTStart := A_TickCount
+        TooltipMsg := "##Autoclick enabled."
+    }
+    toggle := true
+    EmptyMem()
+    SetTimer(autoclick,clickRate)
+return
+} ; V1toV2: Added bracket before function
+
+setTip()
+    ; V1toV2: StrReplace() is not case sensitive
+    ; check for StringCaseSense in v1 source script
+    ; and change the CaseSense param in StrReplace() if necessary
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    cleanTTM := StrReplace(TooltipMsg, "##",,,, 1)
+    ToolTip(cleanTTM)
+    if (InStr(TooltipMsg, "##") && A_TickCount - TTStart > 1000)
+        TooltipMsg := ""
+    if (TooltipMsg = "")
+    {
+        ToolTip()
+        SetTimer(setTip,0)
+    }
+return
+} ; V1toV2: Added bracket before function
+
+checkMouseMovement()
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    if (WinExist("ahk_id" . actWin) || !actWin) ; If NIAC is clicking in a window, or the window isn't set, it's all good.
+    {
+        MouseGetPos(&tx, &ty)
+        if (tx == pmx && ty == pmy)
+            mouseMoved := false
+        else
+            mouseMoved := true
+        pmx := tx
+        pmy := ty
+    }
+    else ; Otherwise, the target window has been closed.
+    {
+        msgResult := MsgBox("Target window has been closed, `n Do you want to close NIAutoclicker as well?", "NIAC", 4)
+        if (msgResult = "Yes")
+            ExitApp()
+else
+{
+    actWin := 0
+    toggle := false
+}
+    }
+return
+} ; V1toV2: Added Bracket before label
+
+autoclick()
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+    if !(WinActive("ahk_id" . actWin) && (A_TimeIdlePhysical < 50 && !mouseMoved))
+    {
+        cx := xp%currentClick%
+        cy := yp%currentClick%
+        ControlClick("x" cx " y" cy, "ahk_id " actWin, , , , "NA")
+        currentClick := Mod(currentClick + 1, totalClicks)
+    }
+return
+} ; V1toV2: Added Bracket before hotkey or Hotstring
+
+~*LButton up::
+{ ; V1toV2: Added bracket
+global ; V1toV2: Made function global
+return
+} ; V1toV2: Added bracket in the end
+
+#HotIf WinActive("ahk_id" . actWin) && toggle
+    $~*LButton::
+    {
+        MouseGetPos(, , &winClick)
+        if (winClick = actWin)
+            SetTimer(autoclick,0)
+        Send("{Blind}{LButton Down}")
+        return
+    }
+
+    $~*LButton up::
+    {
+        if !WinExist("NIAC Settings")
+            SetTimer(autoclick,clickRate)
+        Send("{Blind}{LButton Up}")
+        return
+    }
+
+    EmptyMem()
+    {
+        pid:= DllCall("GetCurrentProcessId")
+        h:=DllCall("OpenProcess", "UInt", 0x001F0FFF, "Int", 0, "Int", pid)
+        DllCall("SetProcessWorkingSetSize", "UInt", h, "Int", -1, "Int", -1)
+        DllCall("CloseHandle", "Int", h)
+    }
