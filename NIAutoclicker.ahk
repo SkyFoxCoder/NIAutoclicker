@@ -28,6 +28,11 @@ TempRateSPC := 1
 
 setTimer, checkMouseMovement, 10
 
+ConfigSaveDir := A_AppData . "\NIAutoClicker\"
+ConfigFileName := "config.ini"
+Gosub, LoadConfig
+
+
 setTimer, setTip, 5
 TTStart = %A_TickCount%
 while (A_TickCount - TTStart < 5000 && (!toggle || !heldToggle))
@@ -128,6 +133,8 @@ SetVal:
         actWin :=
         setTimer, autoClick, off
     }
+    Gosub, SaveConfig
+
 GuiClose:
     if toggle
     {
@@ -293,6 +300,30 @@ DisableHoldClick:
         ControlClick, x%xp0% y%yp0%, ahk_id %actWin%,,,, U
         setTimer, DisableHoldClick, off
     }
+return
+
+LoadConfig:
+    ; Check if config file exists, if not, create it.
+    if !FileExist(ConfigSaveDir . ConfigFileName) {
+        Gosub, CreateDefaultConfig
+        return
+    }
+
+    ; Load values saved in the config file
+    IniRead, TempRateCPS, %ConfigSaveDir%%ConfigFileName%, UserConfig, ClicksPerSeconds
+    IniRead, TempRateSPC, %ConfigSaveDir%%ConfigFileName%, UserConfig, SecondsPerClick
+return
+
+SaveConfig:
+    IniWrite, %TempRateCPS%, %ConfigSaveDir%%ConfigFileName%, UserConfig, ClicksPerSeconds
+    IniWrite, %TempRateSPC%, %ConfigSaveDir%%ConfigFileName%, UserConfig, SecondsPerClick
+return
+
+CreateDefaultConfig:
+    FileCreateDir, %ConfigSaveDir%
+    file := FileOpen(ConfigSaveDir . ConfigFileName, "w")
+    file.Write("[UserConfig]`nClicksPerSeconds=" . TempRateCPS . "`nSecondsPerClick=" . TempRateSPC)
+    file.Close()
 return
 
 ~*LButton up::
