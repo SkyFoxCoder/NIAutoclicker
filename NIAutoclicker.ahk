@@ -1,5 +1,5 @@
-﻿;Non-Intrusive Autoclicker, by Shadowspaz
-;v2.1.2
+﻿;Non-Intrusive Autoclicker, by Shadowspaz, edited by SkyFoxCoder
+;v2.2.0
 
 #InstallKeybdHook
 #SingleInstance, Force
@@ -10,6 +10,7 @@ Thread, Interrupt, 0
 SetFormat, float, 0.0
 
 toggle := false
+heldToggle := false
 inputPresent := false
 mouseMoved := false
 settingPoints := false
@@ -29,18 +30,31 @@ setTimer, checkMouseMovement, 10
 
 setTimer, setTip, 5
 TTStart = %A_TickCount%
-while (A_TickCount - TTStart < 5000 && !toggle)
+while (A_TickCount - TTStart < 5000 && (!toggle || !heldToggle))
 {
-    TooltipMsg = Press (Alt + Backspace) to toggle autoclicker `n Press (Alt + Dash(-)) for options
+    TooltipMsg = Press (Alt + Backspace) to toggle autoclicker `nPress (Alt + Equal(=)) to hold the click `n Press (Alt + Dash(-)) for options
 }
 TooltipMsg =
 
 !-::
+    if heldToggle
+    {
+        setTimer, setTip, 5
+        TTStart = %A_TickCount%
+        while (A_TickCount - TTStart < 3000 && (!toggle || !heldToggle))
+        {
+            TooltipMsg = Stop Autoclick Hold to open Options ( Alt + Equal(=) ).
+        }
+        TooltipMsg =
+        Return
+    }
+
     IfWinNotExist, NIAC Settings
     {
         if settingPoints
         {
             toggle := false
+            heldToggle := false
             settingPoints := false
             actWin :=
             TooltipMsg =
@@ -60,7 +74,7 @@ TooltipMsg =
         Gui, Add, Button, x60 y117 gReset, Reset
         Gui, Add, Button, x112 y117 Default gSetVal, Set
         Gui, Font, s6
-        Gui, Add, Text, x188 y151, v2.1.1
+        Gui, Add, Text, x101 y151, Edited by SkyFoxCoder - v2.2.0
         if mode < 2
         {
             GuiControl,, Mode, 1
@@ -92,6 +106,7 @@ return
 
 Reset:
     toggle := false
+    heldToggle := false
     actWin :=
     setTimer, autoClick, off
     currentClick := 1
@@ -109,6 +124,7 @@ SetVal:
     if totalClicks != %prevTC%
     {
         toggle := false
+        heldToggle := false
         actWin :=
         setTimer, autoClick, off
     }
@@ -117,6 +133,11 @@ GuiClose:
     {
         EmptyMem()
         setTimer, autoclick, %clickRate%
+    }
+    else if heldToggle
+    {
+        EmptyMem()
+        setTimer, EnableHoldClick, on
     }
     Gui, Destroy
 return
@@ -172,6 +193,46 @@ return
     setTimer, autoclick, %clickRate%
 return
 
+!=::
+    IfWinExist, NIAC Settings ; Only functional if options window is not open
+    {
+        return
+    }
+
+    heldToggle := !heldToggle
+    if (!heldToggle)
+    {
+        setTimer, setTip, 5
+        TTStart = %A_TickCount%
+        TooltipMsg = ##Autoclick hold mode disabled.
+        setTimer, EnableHoldClick, off
+        setTimer, DisableHoldClick, on
+        return
+    }
+
+    setTimer, setTip, 5
+    if (!actWin) ; actWin value is also used to determine if checks are set. If they aren't:
+    {
+        TooltipMsg = Click the desired autoclick location.
+        heldToggle := false
+        Keywait, LButton, D
+        Keywait, LButton
+        TooltipMsg =
+        MouseGetPos, xp0, yp0
+        WinGet, actWin, ID, A
+    }
+    else ; If values ARE set (actWin contains data):
+    {
+        settingPoints := false
+        setTimer, setTip, 5
+        TTStart = %A_TickCount%
+        TooltipMsg = ##Autoclick hold mode enabled.
+    }
+    heldToggle := true
+    EmptyMem()
+    setTimer, EnableHoldClick, on
+return
+
 setTip:
     StringReplace, cleanTTM, TooltipMsg, ##
     Tooltip, % cleanTTM
@@ -200,11 +261,12 @@ checkMouseMovement:
         Msgbox, 4, NIAC, Target window has been closed, `n Do you want to close NIAutoclicker as well?
         IfMsgBox Yes
             ExitApp
-else
-{
-    actWin :=
-    toggle := false
-}
+        else
+        {
+            actWin :=
+            toggle := false
+            heldToggle := false
+        }
     }
 return
 
@@ -215,6 +277,21 @@ autoclick:
         cy := yp%currentClick%
         ControlClick, x%cx% y%cy%, ahk_id %actWin%,,,, NA
         currentClick := % Mod(currentClick + 1, totalClicks)
+    }
+return
+
+EnableHoldClick:
+    if !(WinActive("ahk_id" . actWin) && (A_TimeIdlePhysical < 50 && !mouseMoved))
+    {
+        ControlClick, x%xp0% y%yp0%, ahk_id %actWin%,,,, D
+    }
+return
+
+DisableHoldClick:
+    if !(WinActive("ahk_id" . actWin) && (A_TimeIdlePhysical < 50 && !mouseMoved))
+    {
+        ControlClick, x%xp0% y%yp0%, ahk_id %actWin%,,,, U
+        setTimer, DisableHoldClick, off
     }
 return
 
