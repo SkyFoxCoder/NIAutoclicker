@@ -1,5 +1,5 @@
 ﻿;Non-Intrusive Autoclicker, by Shadowspaz, edited by SkyFoxCoder
-;v2.2.0
+;v2.3.0
 
 #InstallKeybdHook
 #SingleInstance, Force
