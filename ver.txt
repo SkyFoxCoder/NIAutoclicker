@@ -1,6 +1,8 @@
 Current version: v2.1.2
 
 Changelog:
+2.3.0 - New Feature: Configurations in GUI are saved.
+2.2.0 - New Feature: Alt + Equal(=) to hold the click.
 2.1.2 - Reformated some of the code.
 2.1.1 - Fixed occasional "hotkey overflow" bug
 2.1.0 - Added support for multiple click locations
