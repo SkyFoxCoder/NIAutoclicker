@@ -1,5 +1,5 @@
 ﻿;Non-Intrusive Autoclicker, by Shadowspaz, edited by SkyFoxCoder
-;v2.3.0
+VERSION = 2.3.0
 
 #InstallKeybdHook
 #SingleInstance, Force
@@ -79,7 +79,7 @@ TooltipMsg =
         Gui, Add, Button, x60 y117 gReset, Reset
         Gui, Add, Button, x112 y117 Default gSetVal, Set
         Gui, Font, s6
-        Gui, Add, Text, x101 y151, Edited by SkyFoxCoder - v2.2.0
+        Gui, Add, Text, x101 y151, Edited by SkyFoxCoder - v%VERSION%
         if mode < 2
         {
             GuiControl,, Mode, 1
